@@ -7,15 +7,20 @@ import 'options.dart';
 /// An interceptor that will try to send failed request again
 class RetryInterceptor extends Interceptor {
   final Dio dio;
-  final Logger logger;
+  final Logger? logger;
   final RetryOptions options;
 
-  RetryInterceptor({@required this.dio, this.logger, RetryOptions options})
+  RetryInterceptor(
+      {required this.dio, Logger? this.logger, RetryOptions? options})
       : options = options ?? const RetryOptions();
 
   @override
   Future onError(DioError err) async {
-    var extra = RetryOptions.fromExtra(err.request) ?? options;
+    if (err.request == null) {
+      return;
+    }
+
+    var extra = RetryOptions.fromExtra(err.request!) ?? options;
 
     var shouldRetry = extra.retries > 0 && await options.retryEvaluator(err);
     if (shouldRetry) {
@@ -25,19 +30,19 @@ class RetryInterceptor extends Interceptor {
 
       // Update options to decrease retry count before new try
       extra = extra.copyWith(retries: extra.retries - 1);
-      err.request.extra = err.request.extra..addAll(extra.toExtra());
+      err.request!.extra = err.request!.extra..addAll(extra.toExtra());
 
       try {
         logger?.warning(
-            '[${err.request.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})');
+            '[${err.request!.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})');
         // We retry with the updated options
         return await dio.request(
-          err.request.path,
-          cancelToken: err.request.cancelToken,
-          data: err.request.data,
-          onReceiveProgress: err.request.onReceiveProgress,
-          onSendProgress: err.request.onSendProgress,
-          queryParameters: err.request.queryParameters,
+          err.request!.path,
+          cancelToken: err.request!.cancelToken,
+          data: err.request!.data,
+          onReceiveProgress: err.request!.onReceiveProgress,
+          onSendProgress: err.request!.onSendProgress,
+          queryParameters: err.request!.queryParameters,
         );
       } catch (e) {
         return e;

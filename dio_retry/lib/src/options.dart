@@ -20,15 +20,13 @@ class RetryOptions {
   /// Defaults to [defaultRetryEvaluator].
   RetryEvaluator get retryEvaluator => _retryEvaluator ?? defaultRetryEvaluator;
 
-  final RetryEvaluator _retryEvaluator;
+  final RetryEvaluator? _retryEvaluator;
 
   const RetryOptions(
       {this.retries = 3,
-      RetryEvaluator retryEvaluator,
+      RetryEvaluator? retryEvaluator,
       this.retryInterval = const Duration(seconds: 1)})
-      : assert(retries != null),
-        assert(retryInterval != null),
-        _retryEvaluator = retryEvaluator;
+      : _retryEvaluator = retryEvaluator;
 
   factory RetryOptions.noRetry() {
     return RetryOptions(
@@ -50,8 +48,8 @@ class RetryOptions {
   }
 
   RetryOptions copyWith({
-    int retries,
-    Duration retryInterval,
+    int? retries,
+    Duration? retryInterval,
   }) =>
       RetryOptions(
         retries: retries ?? this.retries,
@@ -70,7 +68,7 @@ class RetryOptions {
 
   Options mergeIn(Options options) {
     return options
-      ..extra.addAll(
+      ..extra?.addAll(
           <String, dynamic>{}..addAll(options.extra ?? {})..addAll(toExtra()));
   }
 }
