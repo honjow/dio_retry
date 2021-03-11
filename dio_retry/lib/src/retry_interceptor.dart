@@ -11,13 +11,13 @@ class RetryInterceptor extends Interceptor {
   final RetryOptions options;
 
   RetryInterceptor({@required this.dio, this.logger, RetryOptions options})
-      : this.options = options ?? const RetryOptions();
+      : options = options ?? const RetryOptions();
 
   @override
-  onError(DioError err) async {
-    var extra = RetryOptions.fromExtra(err.request) ?? this.options;
+  Future onError(DioError err) async {
+    var extra = RetryOptions.fromExtra(err.request) ?? options;
 
-    var shouldRetry = extra.retries > 0 && await extra.retryEvaluator(err);
+    var shouldRetry = extra.retries > 0 && await options.retryEvaluator(err);
     if (shouldRetry) {
       if (extra.retryInterval.inMilliseconds > 0) {
         await Future.delayed(extra.retryInterval);
@@ -29,17 +29,16 @@ class RetryInterceptor extends Interceptor {
 
       try {
         logger?.warning(
-            "[${err.request.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})");
+            '[${err.request.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})');
         // We retry with the updated options
-        return await this.dio.request(
-              err.request.path,
-              cancelToken: err.request.cancelToken,
-              data: err.request.data,
-              onReceiveProgress: err.request.onReceiveProgress,
-              onSendProgress: err.request.onSendProgress,
-              queryParameters: err.request.queryParameters,
-              options: err.request,
-            );
+        return await dio.request(
+          err.request.path,
+          cancelToken: err.request.cancelToken,
+          data: err.request.data,
+          onReceiveProgress: err.request.onReceiveProgress,
+          onSendProgress: err.request.onSendProgress,
+          queryParameters: err.request.queryParameters,
+        );
       } catch (e) {
         return e;
       }
