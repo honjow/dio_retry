@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:logging/logging.dart';
-import 'package:meta/meta.dart';
 
 import 'options.dart';
 
@@ -15,12 +14,12 @@ class RetryInterceptor extends Interceptor {
       : options = options ?? const RetryOptions();
 
   @override
-  Future onError(DioError err) async {
-    if (err.request == null) {
+  Future onError(DioError err, ErrorInterceptorHandler handler) async {
+    if (err.requestOptions == null) {
       return;
     }
 
-    var extra = RetryOptions.fromExtra(err.request!) ?? options;
+    var extra = RetryOptions.fromExtra(err.requestOptions) ?? options;
 
     var shouldRetry = extra.retries > 0 && await options.retryEvaluator(err);
     if (shouldRetry) {
@@ -30,25 +29,26 @@ class RetryInterceptor extends Interceptor {
 
       // Update options to decrease retry count before new try
       extra = extra.copyWith(retries: extra.retries - 1);
-      err.request!.extra = err.request!.extra..addAll(extra.toExtra());
+      err.requestOptions!.extra = err.requestOptions.extra
+        ..addAll(extra.toExtra());
 
       try {
         logger?.warning(
-            '[${err.request!.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})');
+            '[${err.requestOptions.uri}] An error occured during request, trying a again (remaining tries: ${extra.retries}, error: ${err.error})');
         // We retry with the updated options
         return await dio.request(
-          err.request!.path,
-          cancelToken: err.request!.cancelToken,
-          data: err.request!.data,
-          onReceiveProgress: err.request!.onReceiveProgress,
-          onSendProgress: err.request!.onSendProgress,
-          queryParameters: err.request!.queryParameters,
+          err.requestOptions.path,
+          cancelToken: err.requestOptions.cancelToken,
+          data: err.requestOptions.data,
+          onReceiveProgress: err.requestOptions.onReceiveProgress,
+          onSendProgress: err.requestOptions.onSendProgress,
+          queryParameters: err.requestOptions.queryParameters,
         );
       } catch (e) {
         return e;
       }
     }
 
-    return super.onError(err);
+    return super.onError(err, handler);
   }
 }
