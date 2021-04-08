@@ -15,11 +15,7 @@ class RetryInterceptor extends Interceptor {
 
   @override
   Future onError(DioError err, ErrorInterceptorHandler handler) async {
-    if (err.requestOptions == null) {
-      return;
-    }
-
-    var extra = RetryOptions.fromExtra(err.requestOptions) ?? options;
+    var extra = RetryOptions.fromExtra(err.requestOptions);
 
     var shouldRetry = extra.retries > 0 && await options.retryEvaluator(err);
     if (shouldRetry) {
@@ -29,7 +25,7 @@ class RetryInterceptor extends Interceptor {
 
       // Update options to decrease retry count before new try
       extra = extra.copyWith(retries: extra.retries - 1);
-      err.requestOptions!.extra = err.requestOptions.extra
+      err.requestOptions.extra = err.requestOptions.extra
         ..addAll(extra.toExtra());
 
       try {
